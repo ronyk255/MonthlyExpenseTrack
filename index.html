@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f766e">
+  <title>Monthly Expense Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="appHeader">
+    <div>
+      <p class="eyebrow">Salary cycle budget</p>
+      <h1>Monthly Expense Tracker</h1>
+    </div>
+    <div class="cyclePicker">
+      <label for="cycleSelect">Cycle</label>
+      <select id="cycleSelect"></select>
+    </div>
+  </header>
+
+  <main>
+    <section class="summaryBand" aria-label="Monthly summary">
+      <div class="summaryCard primary">
+        <span>Available after planned items</span>
+        <strong id="availableAmount">0 SEK</strong>
+        <small id="cycleLabel">Current salary month</small>
+      </div>
+      <div class="summaryCard">
+        <span>Total income</span>
+        <strong id="incomeAmount">0 SEK</strong>
+        <small>Salary plus extra income</small>
+      </div>
+      <div class="summaryCard">
+        <span>Salary account spending</span>
+        <strong id="salarySpendAmount">0 SEK</strong>
+        <small>Debit orders, savings, manual cash items</small>
+      </div>
+      <div class="summaryCard warningCard" id="creditSummaryCard">
+        <span>Credit card balance</span>
+        <strong id="creditBalanceAmount">0 SEK</strong>
+        <small id="creditHint">Alert above 2,000 SEK</small>
+      </div>
+    </section>
+
+    <section id="alerts" class="alerts" aria-live="polite"></section>
+
+    <nav class="tabs" aria-label="Tracker sections">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="add">Add</button>
+      <button class="tab" data-tab="records">Records</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <section class="panel active" id="overviewPanel">
+      <div class="sectionHead">
+        <div>
+          <p class="eyebrow">This salary month</p>
+          <h2>Planned Money Flow</h2>
+        </div>
+        <button id="settleCreditBtn" class="secondary">Pay credit card to zero</button>
+      </div>
+      <div class="flowGrid">
+        <div>
+          <h3>Income</h3>
+          <div id="incomeList" class="itemList"></div>
+        </div>
+        <div>
+          <h3>Standard Expenses</h3>
+          <div id="standardExpenseList" class="itemList"></div>
+        </div>
+        <div>
+          <h3>Manual Expenses</h3>
+          <div id="manualExpenseList" class="itemList"></div>
+        </div>
+        <div>
+          <h3>Credit Card</h3>
+          <div id="creditList" class="itemList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="addPanel">
+      <div class="formsGrid">
+        <form id="expenseForm" class="formBox">
+          <h2>Add Expense</h2>
+          <label>Description <input id="expenseName" required placeholder="Groceries, restaurant, fuel"></label>
+          <label>Amount SEK <input id="expenseAmount" required type="number" min="1" step="1" placeholder="350"></label>
+          <label>Date <input id="expenseDate" required type="date"></label>
+          <label>Paid from
+            <select id="expenseSource">
+              <option value="salary">Salary account</option>
+              <option value="credit">Credit card</option>
+            </select>
+          </label>
+          <button type="submit" class="primaryButton">Add expense</button>
+        </form>
+
+        <form id="incomeForm" class="formBox">
+          <h2>Add Extra Income</h2>
+          <label>Description <input id="incomeName" required placeholder="Tax return, bonus, reimbursement"></label>
+          <label>Amount SEK <input id="incomeValue" required type="number" min="1" step="1" placeholder="5000"></label>
+          <label>Date <input id="incomeDate" required type="date"></label>
+          <button type="submit" class="primaryButton">Add income</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel" id="recordsPanel">
+      <div class="sectionHead">
+        <div>
+          <p class="eyebrow">Rolling history</p>
+          <h2>Last 3 Salary Months</h2>
+        </div>
+        <button id="exportBtn" class="secondary">Export JSON</button>
+      </div>
+      <div id="historyList" class="historyList"></div>
+    </section>
+
+    <section class="panel" id="settingsPanel">
+      <form id="settingsForm" class="settingsGrid">
+        <div class="formBox">
+          <h2>Main Settings</h2>
+          <label>Monthly net salary <input id="salaryInput" type="number" min="0" step="100"></label>
+          <label>Salary day <input id="salaryDayInput" type="number" min="1" max="28" step="1"></label>
+          <label>Credit alert level <input id="creditAlertInput" type="number" min="0" step="100"></label>
+          <label>Credit card limit <input id="creditLimitInput" type="number" min="0" step="100"></label>
+          <label>Travel/car savings to wife <input id="wifeSavingsInput" type="number" min="0" step="100"></label>
+          <label>Bus monthly ticket <input id="busInput" type="number" min="0" step="1"></label>
+          <button type="submit" class="primaryButton">Save settings</button>
+        </div>
+
+        <div class="formBox">
+          <h2>Standard Items</h2>
+          <div id="settingsExpenseList" class="settingsList"></div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <template id="rowTemplate">
+    <div class="rowItem">
+      <div>
+        <strong></strong>
+        <small></small>
+      </div>
+      <span></span>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
