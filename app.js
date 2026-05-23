@@ -1,4 +1,6 @@
-const STORAGE_KEY = "monthlyExpenseTracker:v1";
+const STORAGE_KEY = "monthlyExpenseTracker:v2";
+const OLD_STORAGE_KEYS = ["monthlyExpenseTracker:v1"];
+const TRACKING_START_DATE = "2026-05-25";
 
 const defaultSettings = {
   salary: 42400,
@@ -16,7 +18,7 @@ const defaultSettings = {
     { id: "mortgage", name: "Mortgage", amount: 9469, day: 25, frequency: "monthly", account: "salary" },
     { id: "housing-fee", name: "Housing association avgift", amount: 6111, day: 25, frequency: "monthly", account: "salary" },
     { id: "bus-ticket", name: "Bus monthly ticket", amount: 634, day: 15, frequency: "monthly", account: "salary", linkedSetting: "busTicket" },
-    { id: "wife-savings", name: "Travel/car savings to wife", amount: 20000, day: 25, frequency: "monthly", account: "salary", linkedSetting: "wifeSavings" },
+    { id: "wife-savings", name: "Travel/car savings with wife", amount: 20000, day: 25, frequency: "monthly", account: "salary", linkedSetting: "wifeSavings", category: "wife-savings" },
     { id: "prime", name: "Amazon Prime", amount: 569, day: 25, month: 1, frequency: "yearly", account: "salary" }
   ],
   standardIncome: [
@@ -36,12 +38,14 @@ const els = {
   incomeAmount: document.getElementById("incomeAmount"),
   salarySpendAmount: document.getElementById("salarySpendAmount"),
   creditBalanceAmount: document.getElementById("creditBalanceAmount"),
+  wifeSavingsAmount: document.getElementById("wifeSavingsAmount"),
   creditHint: document.getElementById("creditHint"),
   creditSummaryCard: document.getElementById("creditSummaryCard"),
   cycleLabel: document.getElementById("cycleLabel"),
   alerts: document.getElementById("alerts"),
   incomeList: document.getElementById("incomeList"),
   standardExpenseList: document.getElementById("standardExpenseList"),
+  wifeSavingsList: document.getElementById("wifeSavingsList"),
   manualExpenseList: document.getElementById("manualExpenseList"),
   creditList: document.getElementById("creditList"),
   historyList: document.getElementById("historyList"),
@@ -49,14 +53,16 @@ const els = {
 };
 
 function loadState() {
+  OLD_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  const initialCycle = cycleKeyForDate(todayOrTrackingStart(), defaultSettings.salaryDay);
   if (saved) {
     return {
       settings: { ...defaultSettings, ...saved.settings },
       manualExpenses: saved.manualExpenses || [],
       extraIncome: saved.extraIncome || [],
       creditPayments: saved.creditPayments || [],
-      selectedCycle: saved.selectedCycle || cycleKeyForDate(new Date(), defaultSettings.salaryDay)
+      selectedCycle: saved.selectedCycle || initialCycle
     };
   }
   return {
@@ -64,7 +70,7 @@ function loadState() {
     manualExpenses: [],
     extraIncome: [],
     creditPayments: [],
-    selectedCycle: cycleKeyForDate(new Date(), defaultSettings.salaryDay)
+    selectedCycle: initialCycle
   };
 }
 
@@ -89,6 +95,12 @@ function cycleKeyForDate(date, salaryDay = state.settings.salaryDay) {
   return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function todayOrTrackingStart() {
+  const today = new Date();
+  const trackingStart = new Date(`${TRACKING_START_DATE}T12:00:00`);
+  return today < trackingStart ? trackingStart : today;
+}
+
 function cycleBounds(key) {
   const [year, month] = key.split("-").map(Number);
   const start = new Date(year, month - 1, state.settings.salaryDay);
@@ -105,14 +117,17 @@ function dateInCycle(dateString, key) {
 
 function cycleKeys() {
   const keys = new Set();
-  const currentStart = cycleStartForDate(new Date());
+  const currentStart = cycleStartForDate(todayOrTrackingStart());
+  const trackingCycle = cycleKeyForDate(new Date(`${TRACKING_START_DATE}T12:00:00`));
   for (let offset = 0; offset < 3; offset += 1) {
     const monthStart = new Date(currentStart);
     monthStart.setMonth(currentStart.getMonth() - offset);
-    keys.add(cycleKeyForDate(monthStart));
+    const key = cycleKeyForDate(monthStart);
+    if (key >= trackingCycle) keys.add(key);
   }
   [...state.manualExpenses, ...state.extraIncome, ...state.creditPayments].forEach((item) => {
-    keys.add(cycleKeyForDate(new Date(`${item.date}T12:00:00`)));
+    const key = cycleKeyForDate(new Date(`${item.date}T12:00:00`));
+    if (key >= trackingCycle) keys.add(key);
   });
   return [...keys].sort().reverse().slice(0, 3);
 }
@@ -159,6 +174,8 @@ function cycleData(key) {
   const standardIncome = activeStandardIncome(key);
   const extraIncome = state.extraIncome.filter((item) => dateInCycle(item.date, key));
   const standardExpenses = activeStandardExpenses(key);
+  const wifeSavings = standardExpenses.filter((item) => item.category === "wife-savings");
+  const debitOrders = standardExpenses.filter((item) => item.category !== "wife-savings");
   const manualExpenses = state.manualExpenses.filter((item) => dateInCycle(item.date, key));
   const salaryManual = manualExpenses.filter((item) => item.source === "salary");
   const creditManual = manualExpenses.filter((item) => item.source === "credit");
@@ -166,6 +183,7 @@ function cycleData(key) {
 
   const income = sum([...standardIncome, ...extraIncome]);
   const standardSpend = sum(standardExpenses);
+  const wifeSavingsTotal = sum(wifeSavings);
   const salaryManualSpend = sum(salaryManual);
   const creditSpend = sum(creditManual);
   const creditPaid = sum(creditPayments);
@@ -177,12 +195,15 @@ function cycleData(key) {
     standardIncome,
     extraIncome,
     standardExpenses,
+    debitOrders,
+    wifeSavings,
     manualExpenses,
     salaryManual,
     creditManual,
     creditPayments,
     income,
     standardSpend,
+    wifeSavingsTotal,
     salaryManualSpend,
     creditSpend,
     creditPaid,
@@ -221,13 +242,15 @@ function render() {
   els.incomeAmount.textContent = money(data.income);
   els.salarySpendAmount.textContent = money(data.salarySpend);
   els.creditBalanceAmount.textContent = money(data.creditBalance);
+  els.wifeSavingsAmount.textContent = money(data.wifeSavingsTotal);
   els.creditHint.textContent = `${money(data.creditBalance)} used of ${money(state.settings.creditLimit)} limit`;
   els.cycleLabel.textContent = `${start.toLocaleDateString("sv-SE")} to ${end.toLocaleDateString("sv-SE")}`;
   els.creditSummaryCard.classList.toggle("alerting", data.creditBalance > state.settings.creditAlert);
 
   renderAlerts(data);
   renderList(els.incomeList, [...data.standardIncome, ...data.extraIncome], state.selectedCycle, "income");
-  renderList(els.standardExpenseList, data.standardExpenses, state.selectedCycle, "standard");
+  renderList(els.standardExpenseList, data.debitOrders, state.selectedCycle, "standard");
+  renderList(els.wifeSavingsList, data.wifeSavings, state.selectedCycle, "savings");
   renderList(els.manualExpenseList, data.salaryManual, state.selectedCycle, "manual");
   renderList(els.creditList, [...data.creditManual, ...data.creditPayments.map((item) => ({ ...item, name: `Payment: ${item.name}` }))], state.selectedCycle, "credit");
   renderHistory(keys);

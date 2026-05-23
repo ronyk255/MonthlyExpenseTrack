@@ -93,7 +93,7 @@ main {
 
 .summaryBand {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -141,6 +141,11 @@ main {
 .warningCard.alerting {
   border-color: #f4a6a0;
   background: #fff3f1;
+}
+
+.savingsCard {
+  border-color: #b9d6c7;
+  background: #f4fbf7;
 }
 
 .alerts {
@@ -326,4 +331,3 @@ main {
     min-width: 0;
   }
 }
-

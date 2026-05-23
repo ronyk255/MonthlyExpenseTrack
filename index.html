@@ -37,6 +37,11 @@
         <strong id="salarySpendAmount">0 SEK</strong>
         <small>Debit orders, savings, manual cash items</small>
       </div>
+      <div class="summaryCard savingsCard">
+        <span>Savings with wife</span>
+        <strong id="wifeSavingsAmount">0 SEK</strong>
+        <small>Leaves your account, still kept as savings</small>
+      </div>
       <div class="summaryCard warningCard" id="creditSummaryCard">
         <span>Credit card balance</span>
         <strong id="creditBalanceAmount">0 SEK</strong>
@@ -67,8 +72,12 @@
           <div id="incomeList" class="itemList"></div>
         </div>
         <div>
-          <h3>Standard Expenses</h3>
+          <h3>Debit Orders</h3>
           <div id="standardExpenseList" class="itemList"></div>
+        </div>
+        <div>
+          <h3>Savings Account</h3>
+          <div id="wifeSavingsList" class="itemList"></div>
         </div>
         <div>
           <h3>Manual Expenses</h3>
@@ -126,7 +135,7 @@
           <label>Salary day <input id="salaryDayInput" type="number" min="1" max="28" step="1"></label>
           <label>Credit alert level <input id="creditAlertInput" type="number" min="0" step="100"></label>
           <label>Credit card limit <input id="creditLimitInput" type="number" min="0" step="100"></label>
-          <label>Travel/car savings to wife <input id="wifeSavingsInput" type="number" min="0" step="100"></label>
+          <label>Travel/car savings with wife <input id="wifeSavingsInput" type="number" min="0" step="100"></label>
           <label>Bus monthly ticket <input id="busInput" type="number" min="0" step="1"></label>
           <button type="submit" class="primaryButton">Save settings</button>
         </div>
@@ -152,4 +161,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
