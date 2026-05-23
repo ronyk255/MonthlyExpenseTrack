@@ -154,6 +154,45 @@ main {
   margin: 16px 0;
 }
 
+.totalsBand {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.totalBlock {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.totalBlock span,
+.totalBlock small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.totalBlock strong {
+  font-size: 1.35rem;
+}
+
+.incomeTotal {
+  border-left: 5px solid var(--teal);
+}
+
+.expenseTotal {
+  border-left: 5px solid var(--red);
+}
+
+.savingsTotal {
+  border-left: 5px solid #2f855a;
+}
+
 .alert {
   border-radius: 8px;
   padding: 13px 15px;
@@ -249,6 +288,22 @@ main {
   background: #fbfdfc;
 }
 
+.settingsAmountRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fbfdfc;
+}
+
+.settingsAmountRow strong {
+  display: block;
+  color: var(--ink);
+}
+
 .rowItem strong {
   display: block;
   overflow-wrap: anywhere;
@@ -314,6 +369,7 @@ main {
 
 @media (max-width: 900px) {
   .summaryBand,
+  .totalsBand,
   .flowGrid,
   .formsGrid,
   .settingsGrid,
@@ -329,5 +385,9 @@ main {
 
   .cyclePicker {
     min-width: 0;
+  }
+
+  .settingsAmountRow {
+    grid-template-columns: 1fr;
   }
 }

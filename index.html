@@ -38,9 +38,9 @@
         <small>Debit orders, savings, manual cash items</small>
       </div>
       <div class="summaryCard savingsCard">
-        <span>Savings with wife</span>
+        <span>Total savings with wife</span>
         <strong id="wifeSavingsAmount">0 SEK</strong>
-        <small>Leaves your account, still kept as savings</small>
+        <small>Running total since May 25, 2026</small>
       </div>
       <div class="summaryCard warningCard" id="creditSummaryCard">
         <span>Credit card balance</span>
@@ -50,6 +50,22 @@
     </section>
 
     <section id="alerts" class="alerts" aria-live="polite"></section>
+
+    <section class="totalsBand" aria-label="Income expense and savings totals">
+      <div class="totalBlock incomeTotal">
+        <span>Income this cycle</span>
+        <strong id="totalIncomeAmount">0 SEK</strong>
+      </div>
+      <div class="totalBlock expenseTotal">
+        <span>Expenses this cycle</span>
+        <strong id="totalExpenseAmount">0 SEK</strong>
+      </div>
+      <div class="totalBlock savingsTotal">
+        <span>Savings account total</span>
+        <strong id="totalSavingsAmount">0 SEK</strong>
+        <small id="totalSavingsHint">Since May 25, 2026</small>
+      </div>
+    </section>
 
     <nav class="tabs" aria-label="Tracker sections">
       <button class="tab active" data-tab="overview">Overview</button>
@@ -136,12 +152,11 @@
           <label>Credit alert level <input id="creditAlertInput" type="number" min="0" step="100"></label>
           <label>Credit card limit <input id="creditLimitInput" type="number" min="0" step="100"></label>
           <label>Travel/car savings with wife <input id="wifeSavingsInput" type="number" min="0" step="100"></label>
-          <label>Bus monthly ticket <input id="busInput" type="number" min="0" step="1"></label>
           <button type="submit" class="primaryButton">Save settings</button>
         </div>
 
         <div class="formBox">
-          <h2>Standard Items</h2>
+          <h2>Debit Orders</h2>
           <div id="settingsExpenseList" class="settingsList"></div>
         </div>
       </form>

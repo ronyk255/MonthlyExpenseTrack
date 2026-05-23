@@ -57,12 +57,14 @@ function loadState() {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
   const initialCycle = cycleKeyForDate(todayOrTrackingStart(), defaultSettings.salaryDay);
   if (saved) {
+    const selectedCycle = saved.selectedCycle || initialCycle;
     return {
       settings: { ...defaultSettings, ...saved.settings },
       manualExpenses: saved.manualExpenses || [],
       extraIncome: saved.extraIncome || [],
       creditPayments: saved.creditPayments || [],
-      selectedCycle: saved.selectedCycle || initialCycle
+      recurringChanges: saved.recurringChanges || migrateRecurringChanges(saved, selectedCycle),
+      selectedCycle
     };
   }
   return {
@@ -70,6 +72,7 @@ function loadState() {
     manualExpenses: [],
     extraIncome: [],
     creditPayments: [],
+    recurringChanges: {},
     selectedCycle: initialCycle
   };
 }
@@ -77,6 +80,18 @@ function loadState() {
 function saveState() {
   pruneOldRecords();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function migrateRecurringChanges(saved, cycle) {
+  const changes = {};
+  const addChange = (key, amount) => {
+    changes[key] = [{ cycle, amount: Number(amount || 0) }];
+  };
+  if (saved.settings?.salary !== undefined) addChange("income:salary", saved.settings.salary);
+  if (saved.settings?.wifeSavings !== undefined) addChange("expense:wife-savings", saved.settings.wifeSavings);
+  (saved.settings?.standardExpenses || []).forEach((item) => addChange(`expense:${item.id}`, item.amount));
+  if (saved.settings?.busTicket !== undefined) addChange("expense:bus-ticket", saved.settings.busTicket);
+  return changes;
 }
 
 function cycleStartForDate(date, salaryDay = state.settings.salaryDay) {
@@ -139,24 +154,46 @@ function pruneOldRecords() {
   state.creditPayments = state.creditPayments.filter((item) => keep.has(cycleKeyForDate(new Date(`${item.date}T12:00:00`))));
 }
 
-function adjustedExpense(item) {
-  if (item.linkedSetting) {
-    return { ...item, amount: Number(state.settings[item.linkedSetting] || 0) };
-  }
-  return item;
+function effectiveAmount(changeKey, key, fallback) {
+  const changes = state.recurringChanges[changeKey] || [];
+  const activeChange = changes
+    .filter((change) => change.cycle <= key)
+    .sort((a, b) => a.cycle.localeCompare(b.cycle))
+    .at(-1);
+  return Number(activeChange ? activeChange.amount : fallback || 0);
 }
 
-function adjustedIncome(item) {
-  if (item.linkedSetting) {
-    return { ...item, amount: Number(state.settings[item.linkedSetting] || 0) };
-  }
-  return item;
+function recordRecurringChange(changeKey, amount, cycle = state.selectedCycle) {
+  const changes = state.recurringChanges[changeKey] || [];
+  const withoutCycle = changes.filter((change) => change.cycle !== cycle);
+  state.recurringChanges[changeKey] = [...withoutCycle, { cycle, amount: Number(amount || 0) }]
+    .sort((a, b) => a.cycle.localeCompare(b.cycle));
+}
+
+function defaultExpenseAmount(item) {
+  if (item.linkedSetting) return defaultSettings[item.linkedSetting];
+  const defaultItem = defaultSettings.standardExpenses.find((expense) => expense.id === item.id);
+  return defaultItem ? defaultItem.amount : item.amount;
+}
+
+function defaultIncomeAmount(item) {
+  if (item.linkedSetting) return defaultSettings[item.linkedSetting];
+  const defaultItem = defaultSettings.standardIncome.find((income) => income.id === item.id);
+  return defaultItem ? defaultItem.amount : item.amount;
+}
+
+function adjustedExpense(item, key) {
+  return { ...item, amount: effectiveAmount(`expense:${item.id}`, key, defaultExpenseAmount(item)) };
+}
+
+function adjustedIncome(item, key) {
+  return { ...item, amount: effectiveAmount(`income:${item.id}`, key, defaultIncomeAmount(item)) };
 }
 
 function activeStandardExpenses(key) {
   const { start, end } = cycleBounds(key);
   return state.settings.standardExpenses
-    .map(adjustedExpense)
+    .map((item) => adjustedExpense(item, key))
     .filter((item) => {
       if (item.frequency === "yearly") {
         const date = new Date(start.getFullYear(), item.month - 1, item.day);
@@ -167,7 +204,7 @@ function activeStandardExpenses(key) {
 }
 
 function activeStandardIncome(key) {
-  return state.settings.standardIncome.map(adjustedIncome).filter((item) => item.amount > 0);
+  return state.settings.standardIncome.map((item) => adjustedIncome(item, key)).filter((item) => item.amount > 0);
 }
 
 function cycleData(key) {
@@ -188,6 +225,7 @@ function cycleData(key) {
   const creditSpend = sum(creditManual);
   const creditPaid = sum(creditPayments);
   const creditBalance = Math.max(0, creditSpend - creditPaid);
+  const totalExpenses = standardSpend + salaryManualSpend + creditSpend;
   const salarySpend = standardSpend + salaryManualSpend + creditPaid;
   const plannedAvailable = income - salarySpend - creditBalance;
 
@@ -205,11 +243,33 @@ function cycleData(key) {
     standardSpend,
     wifeSavingsTotal,
     salaryManualSpend,
+    totalExpenses,
     creditSpend,
     creditPaid,
     creditBalance,
     salarySpend,
     plannedAvailable
+  };
+}
+
+function cyclesFromTrackingStartThrough(key) {
+  const keys = [];
+  const startKey = cycleKeyForDate(new Date(`${TRACKING_START_DATE}T12:00:00`));
+  const [endYear, endMonth] = key.split("-").map(Number);
+  const cursor = new Date(`${startKey}-25T12:00:00`);
+  const end = new Date(endYear, endMonth - 1, state.settings.salaryDay);
+  while (cursor <= end) {
+    keys.push(cycleKeyForDate(cursor));
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  return keys;
+}
+
+function savingsDataThrough(key) {
+  const keys = cyclesFromTrackingStartThrough(key);
+  return {
+    cycleCount: keys.length,
+    total: keys.reduce((total, cycle) => total + cycleData(cycle).wifeSavingsTotal, 0)
   };
 }
 
@@ -237,12 +297,17 @@ function render() {
   els.cycleSelect.value = state.selectedCycle;
 
   const data = cycleData(state.selectedCycle);
+  const savings = savingsDataThrough(state.selectedCycle);
   const { start, end } = cycleBounds(state.selectedCycle);
   els.availableAmount.textContent = money(data.plannedAvailable);
   els.incomeAmount.textContent = money(data.income);
   els.salarySpendAmount.textContent = money(data.salarySpend);
   els.creditBalanceAmount.textContent = money(data.creditBalance);
-  els.wifeSavingsAmount.textContent = money(data.wifeSavingsTotal);
+  els.wifeSavingsAmount.textContent = money(savings.total);
+  document.getElementById("totalIncomeAmount").textContent = money(data.income);
+  document.getElementById("totalExpenseAmount").textContent = money(data.totalExpenses);
+  document.getElementById("totalSavingsAmount").textContent = money(savings.total);
+  document.getElementById("totalSavingsHint").textContent = `${savings.cycleCount} salary month${savings.cycleCount === 1 ? "" : "s"} since ${TRACKING_START_DATE}`;
   els.creditHint.textContent = `${money(data.creditBalance)} used of ${money(state.settings.creditLimit)} limit`;
   els.cycleLabel.textContent = `${start.toLocaleDateString("sv-SE")} to ${end.toLocaleDateString("sv-SE")}`;
   els.creditSummaryCard.classList.toggle("alerting", data.creditBalance > state.settings.creditAlert);
@@ -315,6 +380,8 @@ function renderHistory(keys) {
         <h3>${cycleTitle(key)}</h3>
         <div class="historyStats">
           <div class="statPill"><span>Income</span><strong>${money(data.income)}</strong></div>
+          <div class="statPill"><span>Expenses</span><strong>${money(data.totalExpenses)}</strong></div>
+          <div class="statPill"><span>Savings with wife</span><strong>${money(data.wifeSavingsTotal)}</strong></div>
           <div class="statPill"><span>Salary spend</span><strong>${money(data.salarySpend)}</strong></div>
           <div class="statPill"><span>Credit balance</span><strong>${money(data.creditBalance)}</strong></div>
           <div class="statPill"><span>Available</span><strong>${money(data.plannedAvailable)}</strong></div>
@@ -325,27 +392,28 @@ function renderHistory(keys) {
 }
 
 function renderSettings() {
-  els.settingsExpenseList.innerHTML = state.settings.standardExpenses.map((item) => {
-    const adjusted = adjustedExpense(item);
+  els.settingsExpenseList.innerHTML = state.settings.standardExpenses
+    .filter((item) => item.category !== "wife-savings")
+    .map((item) => {
+    const adjusted = adjustedExpense(item, state.selectedCycle);
     return `
-      <div class="rowItem">
+      <label class="settingsAmountRow">
         <div>
           <strong>${adjusted.name}</strong>
           <small>${adjusted.frequency === "yearly" ? "Yearly" : "Monthly"} - day ${adjusted.day}</small>
         </div>
-        <span>${money(adjusted.amount)}</span>
-      </div>
+        <input data-expense-id="${item.id}" type="number" min="0" step="1" value="${adjusted.amount}">
+      </label>
     `;
   }).join("");
 }
 
 function fillSettingsForm() {
-  document.getElementById("salaryInput").value = state.settings.salary;
+  document.getElementById("salaryInput").value = effectiveAmount("income:salary", state.selectedCycle, defaultSettings.salary);
   document.getElementById("salaryDayInput").value = state.settings.salaryDay;
   document.getElementById("creditAlertInput").value = state.settings.creditAlert;
   document.getElementById("creditLimitInput").value = state.settings.creditLimit;
-  document.getElementById("wifeSavingsInput").value = state.settings.wifeSavings;
-  document.getElementById("busInput").value = state.settings.busTicket;
+  document.getElementById("wifeSavingsInput").value = effectiveAmount("expense:wife-savings", state.selectedCycle, defaultSettings.wifeSavings);
 }
 
 function removeRecord(id) {
@@ -425,12 +493,23 @@ document.getElementById("incomeForm").addEventListener("submit", (event) => {
 
 document.getElementById("settingsForm").addEventListener("submit", (event) => {
   event.preventDefault();
-  state.settings.salary = Number(document.getElementById("salaryInput").value);
+  const salary = Number(document.getElementById("salaryInput").value);
+  const wifeSavings = Number(document.getElementById("wifeSavingsInput").value);
+  state.settings.salary = salary;
   state.settings.salaryDay = Number(document.getElementById("salaryDayInput").value);
   state.settings.creditAlert = Number(document.getElementById("creditAlertInput").value);
   state.settings.creditLimit = Number(document.getElementById("creditLimitInput").value);
-  state.settings.wifeSavings = Number(document.getElementById("wifeSavingsInput").value);
-  state.settings.busTicket = Number(document.getElementById("busInput").value);
+  state.settings.wifeSavings = wifeSavings;
+  recordRecurringChange("income:salary", salary);
+  recordRecurringChange("expense:wife-savings", wifeSavings);
+  document.querySelectorAll("[data-expense-id]").forEach((input) => {
+    const item = state.settings.standardExpenses.find((expense) => expense.id === input.dataset.expenseId);
+    const amount = Number(input.value);
+    if (!item) return;
+    item.amount = amount;
+    if (item.linkedSetting) state.settings[item.linkedSetting] = amount;
+    recordRecurringChange(`expense:${item.id}`, amount);
+  });
   saveState();
   render();
 });
