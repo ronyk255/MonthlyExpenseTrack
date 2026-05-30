@@ -127,7 +127,7 @@ function mergeDefaultExpenses(savedExpenses = []) {
 }
 
 function seedSalaryChanges(changes) {
-  const salaryChanges = (changes["income:salary"] || []).filter((change) => !["2026-05", "2026-06"].includes(change.cycle));
+  const salaryChanges = (changes["income:salary"] || []).filter((change) => change.cycle < "2026-05");
   changes["income:salary"] = [
     ...salaryChanges,
     { cycle: "2026-05", amount: MAY_2026_SALARY },
