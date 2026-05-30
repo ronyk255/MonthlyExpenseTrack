@@ -1,7 +1,8 @@
 const STORAGE_KEY = "monthlyExpenseTracker:v3";
 const OLD_STORAGE_KEYS = ["monthlyExpenseTracker:v1"];
-const AUTH_KEY = "monthlyExpenseTracker:auth:v1";
 const AUTH_SESSION_KEY = "monthlyExpenseTracker:unlocked";
+const AUTH_SALT = "monthly-expense-tracker-public-gate-v1";
+const AUTH_HASH = "8886c649c27e8a5feffd443e7038a890742e05e8ac114908ddb0f792c98ffe14";
 const TRACKING_START_DATE = "2026-05-25";
 const MAY_2026_SALARY = 48452.81;
 const JUNE_2026_NORMAL_SALARY = 42400;
@@ -428,12 +429,6 @@ function money(value) {
   return fmt.format(Number(value || 0));
 }
 
-function randomSalt() {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 async function sha256(value) {
   const encoded = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", encoded);
@@ -445,18 +440,16 @@ async function passwordHash(password, salt) {
 }
 
 async function requireUnlock() {
-  const savedAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
-  if (savedAuth && sessionStorage.getItem(AUTH_SESSION_KEY) === "true") {
+  if (sessionStorage.getItem(AUTH_SESSION_KEY) === "true") {
     unlockApp();
     return;
   }
 
-  if (!savedAuth) {
-    els.authTitle.textContent = "Create Password";
-    els.authHint.textContent = "This password protects this browser view. Keep it somewhere safe.";
-    els.authSubmit.textContent = "Save password";
-    els.authPassword.setAttribute("autocomplete", "new-password");
-  }
+  localStorage.removeItem("monthlyExpenseTracker:auth:v1");
+  els.authTitle.textContent = "Unlock Expense Tracker";
+  els.authHint.textContent = "Enter the app password to open the tracker.";
+  els.authSubmit.textContent = "Unlock";
+  els.authPassword.setAttribute("autocomplete", "current-password");
 
   await new Promise((resolve) => {
     els.authForm.addEventListener("submit", async (event) => {
@@ -464,18 +457,8 @@ async function requireUnlock() {
       const password = els.authPassword.value;
       if (!password) return;
 
-      const currentAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
-      if (!currentAuth) {
-        const salt = randomSalt();
-        localStorage.setItem(AUTH_KEY, JSON.stringify({ salt, hash: await passwordHash(password, salt) }));
-        sessionStorage.setItem(AUTH_SESSION_KEY, "true");
-        unlockApp();
-        resolve();
-        return;
-      }
-
-      const hash = await passwordHash(password, currentAuth.salt);
-      if (hash !== currentAuth.hash) {
+      const hash = await passwordHash(password, AUTH_SALT);
+      if (hash !== AUTH_HASH) {
         els.authHint.textContent = "Wrong password. Try again.";
         els.authPassword.value = "";
         els.authPassword.focus();
