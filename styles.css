@@ -314,6 +314,36 @@ main {
   background: #fbfdfc;
 }
 
+.sectionTotalsStack {
+  display: grid;
+  gap: 7px;
+}
+
+.sectionTotal {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f0f7f4;
+}
+
+.sectionTotal span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.sectionTotal strong {
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.balanceTotal {
+  background: #fff9ed;
+}
+
 .settingsAmountRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 150px;

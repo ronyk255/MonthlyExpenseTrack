@@ -458,12 +458,16 @@ function render() {
     ...data.extraIncome.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "extraIncome" }))
   ], state.selectedCycle, "income");
   renderList(els.standardExpenseList, data.debitOrders.map((item) => ({ ...item, canEdit: true, editType: "debitOrder" })), state.selectedCycle, "standard");
+  renderSectionTotal(els.standardExpenseList, "Total debit orders", data.standardSpend);
   renderList(els.wifeSavingsList, data.savingsTransfers.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "savingsTransfers" })), state.selectedCycle, "savings");
+  renderSectionTotal(els.wifeSavingsList, "Total savings transfers this cycle", data.savingsTotal);
   renderList(els.manualExpenseList, data.salaryManual.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "manualExpenses" })), state.selectedCycle, "manual");
+  renderSectionTotal(els.manualExpenseList, "Total manual expenses", data.salaryManualSpend);
   renderList(els.creditList, [
     ...data.creditManual.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "manualExpenses" })),
     ...data.creditPayments.map((item) => ({ ...item, name: `Payment: ${item.name}`, canEdit: true, canRemove: true, collection: "creditPayments" }))
   ], state.selectedCycle, "credit");
+  renderCreditSectionTotals(els.creditList, data);
   renderHistory(keys);
   renderSettings();
   fillSettingsForm();
@@ -531,6 +535,24 @@ function renderList(container, items, key, type) {
     }
     container.appendChild(row);
   });
+}
+
+function renderSectionTotal(container, label, amount) {
+  const row = document.createElement("div");
+  row.className = "sectionTotal";
+  row.innerHTML = `<span>${label}</span><strong>${money(amount)}</strong>`;
+  container.appendChild(row);
+}
+
+function renderCreditSectionTotals(container, data) {
+  const totals = document.createElement("div");
+  totals.className = "sectionTotalsStack";
+  totals.innerHTML = `
+    <div class="sectionTotal"><span>Total credit card purchases</span><strong>${money(data.creditSpend)}</strong></div>
+    <div class="sectionTotal"><span>Total payments from main account</span><strong>${money(data.creditPaid)}</strong></div>
+    <div class="sectionTotal balanceTotal"><span>Credit card balance</span><strong>${money(data.creditBalance)}</strong></div>
+  `;
+  container.appendChild(totals);
 }
 
 function renderHistory(keys) {
