@@ -398,11 +398,17 @@ function render() {
   els.creditSummaryCard.classList.toggle("alerting", data.creditBalance > state.settings.creditAlert);
 
   renderAlerts(data);
-  renderList(els.incomeList, [...data.standardIncome, ...data.extraIncome], state.selectedCycle, "income");
+  renderList(els.incomeList, [
+    ...data.standardIncome.map((item) => ({ ...item, canRemove: false })),
+    ...data.extraIncome.map((item) => ({ ...item, canRemove: true }))
+  ], state.selectedCycle, "income");
   renderList(els.standardExpenseList, data.debitOrders, state.selectedCycle, "standard");
-  renderList(els.wifeSavingsList, data.savingsTransfers, state.selectedCycle, "savings");
-  renderList(els.manualExpenseList, data.salaryManual, state.selectedCycle, "manual");
-  renderList(els.creditList, [...data.creditManual, ...data.creditPayments.map((item) => ({ ...item, name: `Payment: ${item.name}`, isCreditPayment: true }))], state.selectedCycle, "credit");
+  renderList(els.wifeSavingsList, data.savingsTransfers.map((item) => ({ ...item, canRemove: true })), state.selectedCycle, "savings");
+  renderList(els.manualExpenseList, data.salaryManual.map((item) => ({ ...item, canRemove: true })), state.selectedCycle, "manual");
+  renderList(els.creditList, [
+    ...data.creditManual.map((item) => ({ ...item, canRemove: true })),
+    ...data.creditPayments.map((item) => ({ ...item, name: `Payment: ${item.name}`, canRemove: true }))
+  ], state.selectedCycle, "credit");
   renderHistory(keys);
   renderSettings();
   fillSettingsForm();
@@ -446,10 +452,11 @@ function renderList(container, items, key, type) {
     row.querySelector("strong").textContent = item.name;
     row.querySelector("small").textContent = `${itemDate(item, key)}${item.source ? ` - ${item.source === "credit" ? "Credit card" : "Salary account"}` : ""}`;
     row.querySelector("span").textContent = money(item.amount);
-    if (type === "manual" || type === "savings" || type === "income" || item.source === "credit" || item.isCreditPayment) {
+    if (item.canRemove) {
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = "Remove";
+      button.textContent = "Delete";
+      button.setAttribute("aria-label", `Delete ${item.name}`);
       button.addEventListener("click", () => removeRecord(item.id));
       row.appendChild(button);
     }
