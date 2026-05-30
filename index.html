@@ -6,9 +6,23 @@
   <meta name="theme-color" content="#0f766e">
   <title>Monthly Expense Tracker</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=20260530-11">
+  <link rel="stylesheet" href="styles.css?v=20260530-12">
 </head>
-<body>
+<body class="locked">
+  <section id="authGate" class="authGate" aria-label="Password protection">
+    <form id="authForm" class="authBox">
+      <p class="eyebrow" id="authEyebrow">Protected app</p>
+      <h1 id="authTitle">Unlock Expense Tracker</h1>
+      <label>Password <input id="authPassword" type="password" autocomplete="current-password" required></label>
+      <small id="authHint">Enter your password to open the tracker.</small>
+      <button type="submit" class="primaryButton" id="authSubmit">Unlock</button>
+    </form>
+  </section>
+
+  <div class="utilityDock">
+    <button id="refreshAppBtn" type="button" title="Clear app cache and reload">Refresh app</button>
+  </div>
+
   <header class="appHeader">
     <div>
       <p class="eyebrow">Salary cycle budget</p>
@@ -211,6 +225,6 @@
     </div>
   </template>
 
-  <script src="app.js?v=20260530-11"></script>
+  <script src="app.js?v=20260530-12"></script>
 </body>
 </html>

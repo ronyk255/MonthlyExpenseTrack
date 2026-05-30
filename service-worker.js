@@ -1,9 +1,9 @@
-const CACHE_NAME = "monthly-expense-tracker-v15";
+const CACHE_NAME = "monthly-expense-tracker-v16";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260530-11",
-  "./app.js?v=20260530-11",
+  "./styles.css?v=20260530-12",
+  "./app.js?v=20260530-12",
   "./manifest.webmanifest",
   "./icon.svg"
 ];

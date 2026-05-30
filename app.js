@@ -1,5 +1,7 @@
 const STORAGE_KEY = "monthlyExpenseTracker:v3";
 const OLD_STORAGE_KEYS = ["monthlyExpenseTracker:v1"];
+const AUTH_KEY = "monthlyExpenseTracker:auth:v1";
+const AUTH_SESSION_KEY = "monthlyExpenseTracker:unlocked";
 const TRACKING_START_DATE = "2026-05-25";
 const MAY_2026_SALARY = 48452.81;
 const JUNE_2026_NORMAL_SALARY = 42400;
@@ -64,6 +66,12 @@ const els = {
   creditSummaryCard: document.getElementById("creditSummaryCard"),
   cycleLabel: document.getElementById("cycleLabel"),
   alerts: document.getElementById("alerts"),
+  authForm: document.getElementById("authForm"),
+  authPassword: document.getElementById("authPassword"),
+  authTitle: document.getElementById("authTitle"),
+  authHint: document.getElementById("authHint"),
+  authSubmit: document.getElementById("authSubmit"),
+  refreshAppBtn: document.getElementById("refreshAppBtn"),
   incomeList: document.getElementById("incomeList"),
   standardExpenseList: document.getElementById("standardExpenseList"),
   wifeSavingsList: document.getElementById("wifeSavingsList"),
@@ -418,6 +426,70 @@ function sum(items) {
 
 function money(value) {
   return fmt.format(Number(value || 0));
+}
+
+function randomSalt() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha256(value) {
+  const encoded = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", encoded);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function passwordHash(password, salt) {
+  return sha256(`${salt}:${password}`);
+}
+
+async function requireUnlock() {
+  const savedAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+  if (savedAuth && sessionStorage.getItem(AUTH_SESSION_KEY) === "true") {
+    unlockApp();
+    return;
+  }
+
+  if (!savedAuth) {
+    els.authTitle.textContent = "Create Password";
+    els.authHint.textContent = "This password protects this browser view. Keep it somewhere safe.";
+    els.authSubmit.textContent = "Save password";
+    els.authPassword.setAttribute("autocomplete", "new-password");
+  }
+
+  await new Promise((resolve) => {
+    els.authForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const password = els.authPassword.value;
+      if (!password) return;
+
+      const currentAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || "null");
+      if (!currentAuth) {
+        const salt = randomSalt();
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ salt, hash: await passwordHash(password, salt) }));
+        sessionStorage.setItem(AUTH_SESSION_KEY, "true");
+        unlockApp();
+        resolve();
+        return;
+      }
+
+      const hash = await passwordHash(password, currentAuth.salt);
+      if (hash !== currentAuth.hash) {
+        els.authHint.textContent = "Wrong password. Try again.";
+        els.authPassword.value = "";
+        els.authPassword.focus();
+        return;
+      }
+      sessionStorage.setItem(AUTH_SESSION_KEY, "true");
+      unlockApp();
+      resolve();
+    });
+  });
+}
+
+function unlockApp() {
+  document.body.classList.remove("locked");
 }
 
 function itemDate(item, key) {
@@ -821,10 +893,33 @@ document.getElementById("exportBtn").addEventListener("click", () => {
   URL.revokeObjectURL(link.href);
 });
 
+async function refreshAppCache() {
+  els.refreshAppBtn.disabled = true;
+  els.refreshAppBtn.textContent = "Refreshing";
+  if ("caches" in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
+  if ("serviceWorker" in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("fresh", Date.now().toString());
+  window.location.replace(url.toString());
+}
+
+els.refreshAppBtn.addEventListener("click", refreshAppCache);
+
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js").catch(() => {});
 }
 
-setTodayDefaults();
-saveState();
-render();
+async function initializeApp() {
+  await requireUnlock();
+  setTodayDefaults();
+  saveState();
+  render();
+}
+
+initializeApp();
