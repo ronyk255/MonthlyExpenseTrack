@@ -504,7 +504,6 @@ function renderAlerts(data) {
 
 function renderSpendCalculation(data) {
   const rows = [
-    ["Opening main balance", data.openingMainBalance],
     ["Income this cycle", data.income],
     ["Debit orders", -data.standardSpend],
     ["Savings transfers", -data.savingsTotal],
