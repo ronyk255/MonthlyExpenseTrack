@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f766e">
   <title>Monthly Expense Tracker</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=20260530-9">
+  <link rel="stylesheet" href="styles.css?v=20260530-10">
 </head>
 <body>
   <header class="appHeader">
@@ -23,7 +23,7 @@
   <main>
     <section class="summaryBand" aria-label="Monthly summary">
       <div class="summaryCard primary">
-        <span>Available after planned items</span>
+        <span>Available in main account</span>
         <strong id="availableAmount">0 SEK</strong>
         <small id="cycleLabel">Current salary month</small>
       </div>
@@ -51,13 +51,23 @@
 
     <section class="balanceBand" aria-label="Account balances">
       <div class="balanceBlock">
-        <span>Main account balance after entered payments</span>
+        <span>Main account balance after entered items</span>
         <strong id="mainBalanceAmount">0 SEK</strong>
       </div>
       <div class="balanceBlock">
         <span>Available if credit card is cleared now</span>
         <strong id="availableAmountMirror">Shown above</strong>
       </div>
+    </section>
+
+    <section class="calculationBand" aria-label="Available to spend calculation">
+      <div class="sectionHead compactHead">
+        <div>
+          <p class="eyebrow">Main account</p>
+          <h2>Available To Spend Calculation</h2>
+        </div>
+      </div>
+      <div id="spendCalc" class="calcList"></div>
     </section>
 
     <section id="alerts" class="alerts" aria-live="polite"></section>
@@ -201,6 +211,6 @@
     </div>
   </template>
 
-  <script src="app.js?v=20260530-9"></script>
+  <script src="app.js?v=20260530-10"></script>
 </body>
 </html>

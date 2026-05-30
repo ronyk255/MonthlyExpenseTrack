@@ -70,6 +70,7 @@ const els = {
   manualExpenseList: document.getElementById("manualExpenseList"),
   creditList: document.getElementById("creditList"),
   historyList: document.getElementById("historyList"),
+  spendCalc: document.getElementById("spendCalc"),
   settingsExpenseList: document.getElementById("settingsExpenseList")
 };
 
@@ -437,7 +438,7 @@ function render() {
   const data = cycleData(state.selectedCycle);
   const savings = savingsDataThrough(state.selectedCycle);
   const { start, end } = cycleBounds(state.selectedCycle);
-  els.availableAmount.textContent = money(data.plannedAvailable);
+  els.availableAmount.textContent = money(data.mainBalance);
   document.getElementById("availableAmountMirror").textContent = money(data.plannedAvailable);
   els.incomeAmount.textContent = money(data.income);
   els.salarySpendAmount.textContent = money(data.salarySpend);
@@ -453,6 +454,7 @@ function render() {
   els.creditSummaryCard.classList.toggle("alerting", data.creditBalance > state.settings.creditAlert);
 
   renderAlerts(data);
+  renderSpendCalculation(data);
   renderList(els.incomeList, [
     ...data.standardIncome.map((item) => ({ ...item, canRemove: false })),
     ...data.extraIncome.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "extraIncome" }))
@@ -486,8 +488,8 @@ function renderAlerts(data) {
   if (data.creditBalance > state.settings.creditLimit) {
     alerts.push({ type: "danger", title: "Credit limit exceeded", detail: `Credit usage is above the ${money(state.settings.creditLimit)} card limit.` });
   }
-  if (data.plannedAvailable < 0) {
-    alerts.push({ type: "warn", title: "Budget pressure", detail: `This cycle is ${money(Math.abs(data.plannedAvailable))} short after planned card payoff.` });
+  if (data.mainBalance < 0) {
+    alerts.push({ type: "warn", title: "Budget pressure", detail: `Your main account is ${money(Math.abs(data.mainBalance))} below zero for this cycle.` });
   }
   if (!alerts.length) {
     alerts.push({ type: "", title: "Budget status", detail: "No active alarms for this salary month." });
@@ -496,6 +498,26 @@ function renderAlerts(data) {
     <div class="alert ${alert.type}">
       <strong>${alert.title}</strong>
       <small>${alert.detail}</small>
+    </div>
+  `).join("");
+}
+
+function renderSpendCalculation(data) {
+  const rows = [
+    ["Opening main balance", data.openingMainBalance],
+    ["Income this cycle", data.income],
+    ["Debit orders", -data.standardSpend],
+    ["Savings transfers", -data.savingsTotal],
+    ["Manual expenses from main account", -data.salaryManualSpend],
+    ["Credit card payments from main account", -data.creditPaid],
+    ["Available to spend in main account", data.mainBalance, "strong"],
+    ["Credit card balance, shown separately", data.creditBalance],
+    ["If credit card is cleared now", data.plannedAvailable]
+  ];
+  els.spendCalc.innerHTML = rows.map(([label, value, tone]) => `
+    <div class="calcRow ${tone || ""}">
+      <span>${label}</span>
+      <strong>${money(value)}</strong>
     </div>
   `).join("");
 }

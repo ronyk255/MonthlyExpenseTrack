@@ -99,7 +99,8 @@ main {
 
 .summaryCard,
 .formBox,
-.panel {
+.panel,
+.calculationBand {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -178,6 +179,49 @@ main {
 
 .balanceBlock strong {
   font-size: 1.2rem;
+}
+
+.calculationBand {
+  margin: 14px 0 0;
+  padding: 16px;
+}
+
+.compactHead {
+  margin-bottom: 12px;
+}
+
+.calcList {
+  display: grid;
+  gap: 7px;
+}
+
+.calcRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.calcRow:last-child {
+  border-bottom: 0;
+}
+
+.calcRow span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.calcRow strong {
+  white-space: nowrap;
+}
+
+.calcRow.strong {
+  padding: 11px 12px;
+  border: 1px solid #b9d6c7;
+  border-radius: 7px;
+  background: #f4fbf7;
 }
 
 .totalsBand {
