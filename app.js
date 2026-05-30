@@ -7,6 +7,20 @@ const MAY_2026_OPENING_BALANCE = 407.67;
 const MAY_2026_SAVINGS_TRANSFER = 10000;
 const MAY_2026_CREDIT_USED = 16000;
 const MAY_2026_CREDIT_PAID = 14500;
+const MAY_2026_OTHER_EXPENSES_MIGRATION = "may2026OtherExpenses";
+
+const may2026OtherExpenses = [
+  { name: "Netflix com", amount: 254, date: "2026-05-29", source: "salary" },
+  { name: "Ica kvantum", amount: 187.28, date: "2026-05-29", source: "salary" },
+  { name: "Rebel", amount: 177, date: "2026-05-28", source: "salary" },
+  { name: "Kraftringen nat ab", amount: 433, date: "2026-05-28", source: "salary" },
+  { name: "Folktandvard", amount: 1082, date: "2026-05-27", source: "salary" },
+  { name: "Openai chat", amount: 249, date: "2026-05-26", source: "salary" },
+  { name: "Ica kvantum", amount: 229.6, date: "2026-05-26", source: "salary" },
+  { name: "Ica kvantum", amount: 76, date: "2026-05-26", source: "salary" },
+  { name: "Ica kvantum", amount: 63.31, date: "2026-05-25", source: "salary" },
+  { name: "Indo pak lunch", amount: 30, date: "2026-05-25", source: "salary" }
+];
 
 const defaultSettings = {
   salary: 42400,
@@ -70,11 +84,12 @@ function loadState() {
     seedSalaryChanges(recurringChanges);
     return {
       settings: structuredClone(defaultSettings),
-      manualExpenses: initialManualExpenses(),
+      manualExpenses: appendMay2026OtherExpenses(initialManualExpenses()),
       extraIncome: [],
       creditPayments: initialCreditPayments(),
       savingsTransfers: initialSavingsTransfers(),
       recurringChanges,
+      migrations: { [MAY_2026_OTHER_EXPENSES_MIGRATION]: true },
       selectedCycle: initialCycle
     };
   }
@@ -85,14 +100,21 @@ function loadState() {
   settings.standardIncome = defaultSettings.standardIncome;
   const recurringChanges = saved.recurringChanges || migrateRecurringChanges(saved, selectedCycle);
   seedSalaryChanges(recurringChanges);
+  const migrations = saved.migrations || {};
+  let manualExpenses = saved.manualExpenses?.length || !isLegacySave ? saved.manualExpenses || [] : initialManualExpenses();
+  if (!migrations[MAY_2026_OTHER_EXPENSES_MIGRATION]) {
+    manualExpenses = appendMay2026OtherExpenses(manualExpenses);
+    migrations[MAY_2026_OTHER_EXPENSES_MIGRATION] = true;
+  }
 
   return {
     settings,
-    manualExpenses: saved.manualExpenses?.length || !isLegacySave ? saved.manualExpenses || [] : initialManualExpenses(),
+    manualExpenses,
     extraIncome: saved.extraIncome || [],
     creditPayments: saved.creditPayments?.length || !isLegacySave ? saved.creditPayments || [] : initialCreditPayments(),
     savingsTransfers: saved.savingsTransfers?.length || !isLegacySave ? saved.savingsTransfers || [] : migrateSavingsTransfers(saved),
     recurringChanges,
+    migrations,
     selectedCycle
   };
 }
@@ -124,6 +146,19 @@ function initialSavingsTransfers() {
 
 function initialManualExpenses() {
   return [{ id: crypto.randomUUID(), name: "Credit card purchases", amount: MAY_2026_CREDIT_USED, date: "2026-05-25", source: "credit" }];
+}
+
+function appendMay2026OtherExpenses(expenses) {
+  const exists = (candidate) => expenses.some((expense) => (
+    expense.name === candidate.name &&
+    expense.date === candidate.date &&
+    Number(expense.amount) === Number(candidate.amount) &&
+    expense.source === candidate.source
+  ));
+  const seeded = may2026OtherExpenses
+    .filter((expense) => !exists(expense))
+    .map((expense) => ({ id: crypto.randomUUID(), ...expense }));
+  return [...expenses, ...seeded];
 }
 
 function initialCreditPayments() {
