@@ -340,13 +340,24 @@ main {
   white-space: nowrap;
 }
 
-.rowItem button {
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.rowActions button {
   border: 0;
   background: transparent;
-  color: var(--red);
+  color: var(--tealDark);
   font-weight: 900;
   cursor: pointer;
   padding: 6px;
+}
+
+.rowActions .dangerAction {
+  color: var(--red);
 }
 
 .formBox {

@@ -455,14 +455,14 @@ function render() {
   renderAlerts(data);
   renderList(els.incomeList, [
     ...data.standardIncome.map((item) => ({ ...item, canRemove: false })),
-    ...data.extraIncome.map((item) => ({ ...item, canRemove: true }))
+    ...data.extraIncome.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "extraIncome" }))
   ], state.selectedCycle, "income");
-  renderList(els.standardExpenseList, data.debitOrders, state.selectedCycle, "standard");
-  renderList(els.wifeSavingsList, data.savingsTransfers.map((item) => ({ ...item, canRemove: true })), state.selectedCycle, "savings");
-  renderList(els.manualExpenseList, data.salaryManual.map((item) => ({ ...item, canRemove: true })), state.selectedCycle, "manual");
+  renderList(els.standardExpenseList, data.debitOrders.map((item) => ({ ...item, canEdit: true, editType: "debitOrder" })), state.selectedCycle, "standard");
+  renderList(els.wifeSavingsList, data.savingsTransfers.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "savingsTransfers" })), state.selectedCycle, "savings");
+  renderList(els.manualExpenseList, data.salaryManual.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "manualExpenses" })), state.selectedCycle, "manual");
   renderList(els.creditList, [
-    ...data.creditManual.map((item) => ({ ...item, canRemove: true })),
-    ...data.creditPayments.map((item) => ({ ...item, name: `Payment: ${item.name}`, canRemove: true }))
+    ...data.creditManual.map((item) => ({ ...item, canEdit: true, canRemove: true, collection: "manualExpenses" })),
+    ...data.creditPayments.map((item) => ({ ...item, name: `Payment: ${item.name}`, canEdit: true, canRemove: true, collection: "creditPayments" }))
   ], state.selectedCycle, "credit");
   renderHistory(keys);
   renderSettings();
@@ -507,13 +507,27 @@ function renderList(container, items, key, type) {
     row.querySelector("strong").textContent = item.name;
     row.querySelector("small").textContent = `${itemDate(item, key)}${item.source ? ` - ${item.source === "credit" ? "Credit card" : "Salary account"}` : ""}`;
     row.querySelector("span").textContent = money(item.amount);
-    if (item.canRemove) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = "Delete";
-      button.setAttribute("aria-label", `Delete ${item.name}`);
-      button.addEventListener("click", () => removeRecord(item.id));
-      row.appendChild(button);
+    if (item.canEdit || item.canRemove) {
+      const actions = document.createElement("div");
+      actions.className = "rowActions";
+      if (item.canEdit) {
+        const editButton = document.createElement("button");
+        editButton.type = "button";
+        editButton.textContent = "Edit";
+        editButton.setAttribute("aria-label", `Edit ${item.name}`);
+        editButton.addEventListener("click", () => editRecord(item));
+        actions.appendChild(editButton);
+      }
+      if (item.canRemove) {
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "Delete";
+        deleteButton.className = "dangerAction";
+        deleteButton.setAttribute("aria-label", `Delete ${item.name}`);
+        deleteButton.addEventListener("click", () => removeRecord(item.id));
+        actions.appendChild(deleteButton);
+      }
+      row.appendChild(actions);
     }
     container.appendChild(row);
   });
@@ -569,6 +583,75 @@ function removeRecord(id) {
   state.savingsTransfers = state.savingsTransfers.filter((item) => item.id !== id);
   saveState();
   render();
+}
+
+function editRecord(item) {
+  if (item.editType === "debitOrder") {
+    editDebitOrder(item);
+    return;
+  }
+  editStoredRecord(item);
+}
+
+function editStoredRecord(item) {
+  const collection = item.collection;
+  const record = state[collection]?.find((entry) => entry.id === item.id);
+  if (!record) return;
+
+  const name = window.prompt("Description", record.name);
+  if (name === null) return;
+  const amount = promptNumber("Amount SEK", record.amount);
+  if (amount === null) return;
+  const date = window.prompt("Date YYYY-MM-DD", record.date);
+  if (date === null) return;
+  let source = record.source;
+
+  if (collection === "manualExpenses") {
+    const sourceValue = window.prompt("Paid from: salary or credit", record.source || "salary");
+    if (sourceValue === null) return;
+    source = sourceValue.toLowerCase() === "credit" ? "credit" : "salary";
+  }
+
+  record.name = name.trim() || record.name;
+  record.amount = amount;
+  record.date = date || record.date;
+  if (collection === "manualExpenses") record.source = source;
+
+  saveState();
+  state.selectedCycle = cycleKeyForDate(new Date(`${record.date}T12:00:00`), state.settings.salaryDay);
+  render();
+}
+
+function editDebitOrder(item) {
+  const record = state.settings.standardExpenses.find((expense) => expense.id === item.id);
+  if (!record) return;
+
+  const name = window.prompt("Debit order name", record.name);
+  if (name === null) return;
+  const amount = promptNumber("Monthly amount SEK", item.amount);
+  if (amount === null) return;
+  const day = promptNumber("Payment day of month", record.day);
+  if (day === null) return;
+
+  record.name = name.trim() || record.name;
+  record.amount = amount;
+  record.day = Math.min(31, Math.max(1, Math.round(day)));
+  if (record.linkedSetting) state.settings[record.linkedSetting] = amount;
+  recordRecurringChange(`expense:${record.id}`, amount);
+  saveState();
+  render();
+}
+
+function promptNumber(label, currentValue) {
+  const value = window.prompt(label, String(currentValue ?? 0));
+  if (value === null) return null;
+  const normalized = value.replace(",", ".");
+  const number = Number(normalized);
+  if (!Number.isFinite(number) || number < 0) {
+    window.alert("Please enter a valid amount.");
+    return null;
+  }
+  return number;
 }
 
 function addRecord(collection, record) {
