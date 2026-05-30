@@ -374,7 +374,7 @@ function cyclesFromTrackingStartThrough(key) {
   const keys = [];
   const startKey = cycleKeyForDate(new Date(`${TRACKING_START_DATE}T12:00:00`), state.settings.salaryDay);
   const [endYear, endMonth] = key.split("-").map(Number);
-  const cursor = new Date(`${startKey}-25T12:00:00`);
+  const cursor = new Date(`${startKey}-${String(state.settings.salaryDay).padStart(2, "0")}T12:00:00`);
   const end = new Date(endYear, endMonth - 1, state.settings.salaryDay);
   while (cursor <= end) {
     keys.push(cycleKeyForDate(cursor, state.settings.salaryDay));
@@ -384,10 +384,15 @@ function cyclesFromTrackingStartThrough(key) {
 }
 
 function savingsDataThrough(key) {
+  const trackingStart = new Date(`${TRACKING_START_DATE}T12:00:00`);
+  const { end } = cycleBounds(key);
   const keys = cyclesFromTrackingStartThrough(key);
   return {
-    cycleCount: keys.length,
-    total: keys.reduce((total, cycle) => total + sum(state.savingsTransfers.filter((item) => dateInCycle(item.date, cycle))), 0)
+    cycleCount: Math.max(1, keys.length),
+    total: sum(state.savingsTransfers.filter((item) => {
+      const date = new Date(`${item.date}T12:00:00`);
+      return date >= trackingStart && date <= end;
+    }))
   };
 }
 
