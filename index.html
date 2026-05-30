@@ -38,7 +38,7 @@
         <small>Debit orders, savings, manual cash items</small>
       </div>
       <div class="summaryCard savingsCard">
-        <span>Total savings with wife</span>
+        <span>Total savings</span>
         <strong id="wifeSavingsAmount">0 SEK</strong>
         <small>Running total since May 25, 2026</small>
       </div>
@@ -46,6 +46,17 @@
         <span>Credit card balance</span>
         <strong id="creditBalanceAmount">0 SEK</strong>
         <small id="creditHint">Alert above 2,000 SEK</small>
+      </div>
+    </section>
+
+    <section class="balanceBand" aria-label="Account balances">
+      <div class="balanceBlock">
+        <span>Main account balance after entered payments</span>
+        <strong id="mainBalanceAmount">0 SEK</strong>
+      </div>
+      <div class="balanceBlock">
+        <span>Available if credit card is cleared now</span>
+        <strong id="availableAmountMirror">Shown above</strong>
       </div>
     </section>
 
@@ -57,11 +68,11 @@
         <strong id="totalIncomeAmount">0 SEK</strong>
       </div>
       <div class="totalBlock expenseTotal">
-        <span>Expenses this cycle</span>
+        <span>Money out this cycle</span>
         <strong id="totalExpenseAmount">0 SEK</strong>
       </div>
       <div class="totalBlock savingsTotal">
-        <span>Savings account total</span>
+        <span>Total savings</span>
         <strong id="totalSavingsAmount">0 SEK</strong>
         <small id="totalSavingsHint">Since May 25, 2026</small>
       </div>
@@ -92,7 +103,7 @@
           <div id="standardExpenseList" class="itemList"></div>
         </div>
         <div>
-          <h3>Savings Account</h3>
+          <h3>Total Savings</h3>
           <div id="wifeSavingsList" class="itemList"></div>
         </div>
         <div>
@@ -123,11 +134,27 @@
         </form>
 
         <form id="incomeForm" class="formBox">
-          <h2>Add Extra Income</h2>
-          <label>Description <input id="incomeName" required placeholder="Tax return, bonus, reimbursement"></label>
+          <h2>Add Extra Money In</h2>
+          <label>Description <input id="incomeName" required placeholder="Company extra cash, neighbor payment"></label>
           <label>Amount SEK <input id="incomeValue" required type="number" min="1" step="1" placeholder="5000"></label>
           <label>Date <input id="incomeDate" required type="date"></label>
           <button type="submit" class="primaryButton">Add income</button>
+        </form>
+
+        <form id="savingsForm" class="formBox accentBox">
+          <h2>Add Savings Transfer</h2>
+          <label>Description <input id="savingsName" placeholder="Lincy savings account"></label>
+          <label>Amount SEK <input id="savingsAmount" required type="number" min="1" step="1" placeholder="10000"></label>
+          <label>Date <input id="savingsDate" required type="date"></label>
+          <button type="submit" class="primaryButton">Add savings</button>
+        </form>
+
+        <form id="creditPaymentForm" class="formBox accentBox">
+          <h2>Add Credit Card Payment</h2>
+          <label>Description <input id="creditPaymentName" placeholder="Credit card refund from main account"></label>
+          <label>Amount SEK <input id="creditPaymentAmount" required type="number" min="1" step="1" placeholder="14500"></label>
+          <label>Date <input id="creditPaymentDate" required type="date"></label>
+          <button type="submit" class="primaryButton">Reduce credit balance</button>
         </form>
       </div>
     </section>
@@ -151,7 +178,8 @@
           <label>Salary day <input id="salaryDayInput" type="number" min="1" max="28" step="1"></label>
           <label>Credit alert level <input id="creditAlertInput" type="number" min="0" step="100"></label>
           <label>Credit card limit <input id="creditLimitInput" type="number" min="0" step="100"></label>
-          <label>Travel/car savings with wife <input id="wifeSavingsInput" type="number" min="0" step="100"></label>
+          <label>Opening main account balance on 2026-05-25 <input id="openingMainBalanceInput" type="number" min="0" step="0.01"></label>
+          <label>Opening credit card balance on 2026-05-25 <input id="openingCreditBalanceInput" type="number" min="0" step="0.01"></label>
           <button type="submit" class="primaryButton">Save settings</button>
         </div>
 

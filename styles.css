@@ -4,7 +4,7 @@
   --muted: #61716d;
   --line: #d7e2df;
   --panel: #ffffff;
-  --bg: #eef5f3;
+  --bg: #f2f6f4;
   --teal: #0f766e;
   --tealDark: #0b4f4a;
   --gold: #c9850c;
@@ -152,6 +152,32 @@ main {
   display: grid;
   gap: 10px;
   margin: 16px 0;
+}
+
+.balanceBand {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+}
+
+.balanceBlock {
+  display: grid;
+  gap: 6px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.balanceBlock span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.balanceBlock strong {
+  font-size: 1.2rem;
 }
 
 .totalsBand {
@@ -330,6 +356,10 @@ main {
   align-content: start;
 }
 
+.accentBox {
+  border-left: 5px solid var(--teal);
+}
+
 .formBox h2 {
   margin-bottom: 2px;
 }
@@ -369,6 +399,7 @@ main {
 
 @media (max-width: 900px) {
   .summaryBand,
+  .balanceBand,
   .totalsBand,
   .flowGrid,
   .formsGrid,
