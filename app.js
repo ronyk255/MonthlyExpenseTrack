@@ -8,12 +8,11 @@ const MAY_2026_SAVINGS_TRANSFER = 10000;
 const MAY_2026_CREDIT_USED = 16000;
 const MAY_2026_CREDIT_PAID = 14500;
 const MAY_2026_OTHER_EXPENSES_MIGRATION = "may2026OtherExpenses";
+const RECURRING_NETFLIX_KRAFTRINGEN_MIGRATION = "recurringNetflixKraftringen";
 
 const may2026OtherExpenses = [
-  { name: "Netflix com", amount: 254, date: "2026-05-29", source: "salary" },
   { name: "Ica kvantum", amount: 187.28, date: "2026-05-29", source: "salary" },
   { name: "Rebel", amount: 177, date: "2026-05-28", source: "salary" },
-  { name: "Kraftringen nat ab", amount: 433, date: "2026-05-28", source: "salary" },
   { name: "Folktandvard", amount: 1082, date: "2026-05-27", source: "salary" },
   { name: "Openai chat", amount: 249, date: "2026-05-26", source: "salary" },
   { name: "Ica kvantum", amount: 229.6, date: "2026-05-26", source: "salary" },
@@ -31,6 +30,8 @@ const defaultSettings = {
   openingCreditBalance: 0,
   busTicket: 634,
   standardExpenses: [
+    { id: "netflix", name: "Netflix", amount: 254, day: 29, frequency: "monthly", account: "salary" },
+    { id: "kraftringen", name: "Kraftringen nat ab", amount: 433, day: 28, frequency: "monthly", account: "salary" },
     { id: "sv-ingenj", name: "Sv ingenj", amount: 405, day: 28, frequency: "monthly", account: "salary" },
     { id: "bank-fee", name: "Enkla vardag", amount: 50, day: 28, frequency: "monthly", account: "salary" },
     { id: "dog-insurance", name: "Hedvig dog insurance", amount: 969, day: 27, frequency: "monthly", account: "salary" },
@@ -106,6 +107,10 @@ function loadState() {
     manualExpenses = appendMay2026OtherExpenses(manualExpenses);
     migrations[MAY_2026_OTHER_EXPENSES_MIGRATION] = true;
   }
+  if (!migrations[RECURRING_NETFLIX_KRAFTRINGEN_MIGRATION]) {
+    manualExpenses = removeMay2026RecurringManualCopies(manualExpenses);
+    migrations[RECURRING_NETFLIX_KRAFTRINGEN_MIGRATION] = true;
+  }
 
   return {
     settings,
@@ -159,6 +164,16 @@ function appendMay2026OtherExpenses(expenses) {
     .filter((expense) => !exists(expense))
     .map((expense) => ({ id: crypto.randomUUID(), ...expense }));
   return [...expenses, ...seeded];
+}
+
+function removeMay2026RecurringManualCopies(expenses) {
+  return expenses.filter((expense) => !(
+    expense.source === "salary" &&
+    (
+      (expense.name === "Netflix com" && expense.date === "2026-05-29" && Number(expense.amount) === 254) ||
+      (expense.name === "Kraftringen nat ab" && expense.date === "2026-05-28" && Number(expense.amount) === 433)
+    )
+  ));
 }
 
 function initialCreditPayments() {
